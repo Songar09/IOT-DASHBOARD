@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>IoT Control Center — Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:#f3f2f1;color:#323130;font-size:13px;}
+:root{
+  --primary:#0078d4;--success:#107c10;--warning:#ff8c00;--danger:#d13438;
+  --surface:#ffffff;--surface2:#f3f2f1;--text:#323130;--text2:#605e5c;--border:#edebe9;
+}
+.dash{padding:12px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 0 10px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+.topbar-left{display:flex;align-items:center;gap:10px;}
+.logo{width:30px;height:30px;background:var(--primary);border-radius:6px;display:flex;align-items:center;justify-content:center;}
+.logo svg{width:16px;height:16px;fill:white;}
+.title-block h1{font-size:15px;font-weight:600;color:var(--text);}
+.title-block p{font-size:11px;color:var(--text2);}
+.live-badge{display:flex;align-items:center;gap:5px;background:#e6f4ea;color:#107c10;font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#107c10;animation:blink 1.2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.ts{font-size:11px;color:var(--text2);}
+
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;}
+.kpi{background:var(--surface);border-radius:6px;padding:12px;border:1px solid var(--border);position:relative;overflow:hidden;}
+.kpi-label{font-size:10px;color:var(--text2);margin-bottom:3px;}
+.kpi-value{font-size:22px;font-weight:600;color:var(--text);line-height:1.1;}
+.kpi-sub{font-size:10px;color:var(--text2);margin-top:3px;}
+.kpi-accent{position:absolute;bottom:0;left:0;height:3px;width:100%;}
+.a-blue{background:#0078d4;} .a-green{background:#107c10;} .a-orange{background:#ff8c00;} .a-purple{background:#8764b8;} .a-red{background:#d13438;}
+
+.grid-2{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+.grid-half{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.grid-32{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px;}
+.grid-23{display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-bottom:10px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px 14px;}
+.card-title{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;}
+.card-big-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px;}
+
+.device-list{display:flex;flex-direction:column;gap:4px;}
+.device-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:4px;background:var(--surface2);cursor:pointer;transition:background 0.15s;}
+.device-row:hover{background:#dce9f5;}
+.dev-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot-online{background:#107c10;} .dot-warning{background:#ff8c00;} .dot-offline{background:#d13438;}
+.dev-name{font-size:11px;font-weight:600;color:var(--text);flex:1;}
+.dev-type{font-size:10px;color:var(--text2);width:65px;}
+.dev-temp{font-size:11px;color:var(--text);width:42px;text-align:right;}
+.dev-bat{font-size:10px;color:var(--text2);width:28px;text-align:right;}
+.dev-status{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;width:55px;text-align:center;}
+.s-online{background:#e6f4ea;color:#107c10;} .s-warning{background:#fff4ce;color:#835b00;} .s-offline{background:#fde7e9;color:#a4262c;}
+
+.map-container{position:relative;width:100%;height:200px;background:#e8eef4;border-radius:6px;overflow:hidden;}
+.map-svg{width:100%;height:100%;}
+.map-pin{cursor:pointer;}
+.map-tooltip{position:absolute;background:white;border:1px solid var(--border);border-radius:5px;padding:6px 9px;font-size:10px;color:var(--text);pointer-events:none;display:none;z-index:10;min-width:110px;box-shadow:0 2px 8px rgba(0,0,0,0.12);}
+
+.legend-row{display:flex;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);}
+.legend-sq{width:9px;height:9px;border-radius:2px;}
+
+.log-table{width:100%;border-collapse:collapse;font-size:10px;}
+.log-table th{color:var(--text2);font-weight:600;text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.log-table td{padding:4px 6px;border-bottom:1px solid var(--border);color:var(--text);}
+.log-table tr:last-child td{border-bottom:none;}
+.log-table tr:hover td{background:#f0f6ff;}
+.tag{font-size:9px;padding:2px 5px;border-radius:3px;font-weight:600;}
+.tag-ok{background:#e6f4ea;color:#107c10;} .tag-fail{background:#fde7e9;color:#a4262c;} .tag-warn{background:#fff4ce;color:#835b00;}
+
+.mini-bar-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.mini-bar-label{font-size:10px;color:var(--text2);width:75px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mini-bar-track{flex:1;height:7px;background:#edebe9;border-radius:4px;overflow:hidden;}
+.mini-bar-fill{height:100%;border-radius:4px;}
+.mini-bar-val{font-size:10px;color:var(--text);width:40px;text-align:right;flex-shrink:0;}
+
+.spark-item{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.spark-name{font-size:10px;color:var(--text2);width:70px;flex-shrink:0;}
+.spark-svg{flex:1;height:26px;}
+.spark-val{font-size:11px;font-weight:600;color:var(--text);width:50px;text-align:right;flex-shrink:0;}
+
+.alerts-list{display:flex;flex-direction:column;gap:4px;}
+.alert-item{display:flex;align-items:flex-start;gap:7px;padding:6px 8px;border-radius:4px;background:var(--surface2);}
+.alert-icon{width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:white;flex-shrink:0;margin-top:1px;font-weight:bold;}
+.ai-warn{background:#ff8c00;} .ai-danger{background:#d13438;} .ai-info{background:#0078d4;}
+.alert-text{font-size:10px;color:var(--text);}
+.alert-time{font-size:9px;color:var(--text2);}
+
+.session-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
+.sess-card{background:var(--surface2);border-radius:4px;padding:7px 9px;}
+.sess-n{font-size:17px;font-weight:600;color:var(--text);}
+.sess-l{font-size:10px;color:var(--text2);}
+
+.scrollable{max-height:150px;overflow-y:auto;}
+.scrollable::-webkit-scrollbar{width:3px;}
+.scrollable::-webkit-scrollbar-thumb{background:#c8c6c4;border-radius:2px;}
+
+.gauge-center{text-align:center;margin-top:4px;}
+.gauge-val{font-size:22px;font-weight:600;}
+.gauge-sub{font-size:10px;color:#d13438;}
+
+.section-divider{font-size:11px;font-weight:600;color:var(--text2);margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border);letter-spacing:0.05em;text-transform:uppercase;}
+</style>
+</head>
+<body>
+<div class="dash">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H7l5-8v4h4l-5 8z"/></svg>
+      </div>
+      <div class="title-block">
+        <h1>IoT Control Center</h1>
+        <p>Monitoreo y control de dispositivos conectados</p>
+      </div>
+      <div class="live-badge"><div class="live-dot"></div>EN VIVO</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="ts" id="timestamp">--</span>
+    </div>
+  </div>
+
+  <div class="section-divider">Resumen ejecutivo</div>
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Dispositivos totales</div><div class="kpi-value" id="kpi-total">48</div><div class="kpi-sub">↑ 3 nuevos esta semana</div><div class="kpi-accent a-blue"></div></div>
+    <div class="kpi"><div class="kpi-label">En línea</div><div class="kpi-value" id="kpi-online" style="color:#107c10">41</div><div class="kpi-sub" id="kpi-pct">85.4% disponibilidad</div><div class="kpi-accent a-green"></div></div>
+    <div class="kpi"><div class="kpi-label">Alertas activas</div><div class="kpi-value" id="kpi-alerts" style="color:#ff8c00">7</div><div class="kpi-sub">↑ 2 vs. ayer</div><div class="kpi-accent a-orange"></div></div>
+    <div class="kpi"><div class="kpi-label">Consumo total</div><div class="kpi-value" id="kpi-energy">3.8</div><div class="kpi-sub">kWh hoy</div><div class="kpi-accent a-purple"></div></div>
+    <div class="kpi"><div class="kpi-label">Consultas/min</div><div class="kpi-value" id="kpi-qpm">247</div><div class="kpi-sub">↓ 12% vs. hora anterior</div><div class="kpi-accent a-red"></div></div>
+  </div>
+
+  <div class="section-divider">Temperatura y estados</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-big-title">Temperatura en tiempo real — últimas 24h</div>
+      <div style="position:relative;height:170px;"><canvas id="tempChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-big-title">Distribución de estados</div>
+      <div style="position:relative;height:170px;"><canvas id="stateChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-divider">Dispositivos y consumo energético</div>
+  <div class="grid-23">
+    <div class="card">
+      <div class="card-big-title">Dispositivos registrados</div>
+      <div class="device-list">
+        <div class="device-row"><div class="dev-dot dot-online"></div><div class="dev-name">Sensor-Alpha-01</div><div class="dev-type">Temperatura</div><div class="dev-temp">23.4°C</div><div class="dev-bat">87%</div><div class="dev-status s-online">En línea</div></div>
+        <div class="device-row"><div class="dev-dot dot-online"></div><div class="dev-name">Gateway-Hub-03</div><div class="dev-type">Gateway</div><div class="dev-temp">31.2°C</div><div class="dev-bat">100%</div><div class="dev-status s-online">En línea</div></div>
+        <div class="device-row"><div class="dev-dot dot-warning"></div><div class="dev-name">Camara-Ext-07</div><div class="dev-type">Cámara</div><div class="dev-temp">45.8°C</div><div class="dev-bat">23%</div><div class="dev-status s-warning">Alerta</div></div>
+        <div class="device-row"><div class="dev-dot dot-online"></div><div class="dev-name">Actuador-B-12</div><div class="dev-type">Actuador</div><div class="dev-temp">28.1°C</div><div class="dev-bat">64%</div><div class="dev-status s-online">En línea</div></div>
+        <div class="device-row"><div class="dev-dot dot-offline"></div><div class="dev-name">Sensor-Hum-04</div><div class="dev-type">Humedad</div><div class="dev-temp">--</div><div class="dev-bat">0%</div><div class="dev-status s-offline">Offline</div></div>
+        <div class="device-row"><div class="dev-dot dot-online"></div><div class="dev-name">Controlador-V2</div><div class="dev-type">Control</div><div class="dev-temp">26.7°C</div><div class="dev-bat">92%</div><div class="dev-status s-online">En línea</div></div>
+        <div class="device-row"><div class="dev-dot dot-warning"></div><div class="dev-name">GPS-Tracker-09</div><div class="dev-type">GPS</div><div class="dev-temp">38.3°C</div><div class="dev-bat">41%</div><div class="dev-status s-warning">Alerta</div></div>
+        <div class="device-row"><div class="dev-dot dot-online"></div><div class="dev-name">Sensor-Press-02</div><div class="dev-type">Presión</div><div class="dev-temp">25.1°C</div><div class="dev-bat">79%</div><div class="dev-status s-online">En línea</div></div>
+        <div class="device-row"><div class="dev-dot dot-online"></div><div class="dev-name">Edge-Node-05</div><div class="dev-type">Edge</div><div class="dev-temp">34.6°C</div><div class="dev-bat">100%</div><div class="dev-status s-online">En línea</div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="card">
+        <div class="card-big-title">Consumo energético por dispositivo (kWh)</div>
+        <div class="legend-row">
+          <div class="legend-item"><div class="legend-sq" style="background:#0078d4"></div>Esta semana</div>
+          <div class="legend-item"><div class="legend-sq" style="background:#b0c9e8"></div>Semana anterior</div>
+        </div>
+        <div id="energyBars"></div>
+      </div>
+      <div class="card">
+        <div class="card-big-title">Alertas recientes</div>
+        <div class="alerts-list">
+          <div class="alert-item"><div class="alert-icon ai-danger">!</div><div><div class="alert-text">Camara-Ext-07: temperatura crítica 45.8°C</div><div class="alert-time">hace 2 min</div></div></div>
+          <div class="alert-item"><div class="alert-icon ai-warn">!</div><div><div class="alert-text">GPS-Tracker-09: batería baja 41%</div><div class="alert-time">hace 8 min</div></div></div>
+          <div class="alert-item"><div class="alert-icon ai-warn">!</div><div><div class="alert-text">Sensor-Hum-04: sin conexión 1h 23min</div><div class="alert-time">hace 83 min</div></div></div>
+          <div class="alert-item"><div class="alert-icon ai-info">i</div><div><div class="alert-text">FW update disponible para 3 dispositivos</div><div class="alert-time">hace 2h</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider">Ubicación GPS · Sesiones · Consultas</div>
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-big-title">Ubicación GPS dispositivos</div>
+      <div class="map-container" id="mapContainer">
+        <svg class="map-svg" viewBox="0 0 360 200" id="mapSvg">
+          <rect width="360" height="200" fill="#e8eef4" rx="5"/>
+          <path d="M60,75 L80,55 L120,65 L160,45 L200,60 L240,50 L280,65 L300,55 L340,70 L340,145 L60,145Z" fill="#d0dde8" opacity="0.6"/>
+          <line x1="0" y1="50" x2="360" y2="50" stroke="#c5d3df" stroke-width="0.3" stroke-dasharray="3,3"/>
+          <line x1="0" y1="100" x2="360" y2="100" stroke="#c5d3df" stroke-width="0.3" stroke-dasharray="3,3"/>
+          <line x1="0" y1="150" x2="360" y2="150" stroke="#c5d3df" stroke-width="0.3" stroke-dasharray="3,3"/>
+          <line x1="90" y1="0" x2="90" y2="200" stroke="#c5d3df" stroke-width="0.3" stroke-dasharray="3,3"/>
+          <line x1="180" y1="0" x2="180" y2="200" stroke="#c5d3df" stroke-width="0.3" stroke-dasharray="3,3"/>
+          <line x1="270" y1="0" x2="270" y2="200" stroke="#c5d3df" stroke-width="0.3" stroke-dasharray="3,3"/>
+          <g class="map-pin" data-name="Sensor-Alpha-01" data-loc="4.711, -74.072" data-temp="23.4°C" data-status="Online"><circle cx="155" cy="88" r="7" fill="#107c10" opacity="0.9"/><circle cx="155" cy="88" r="12" fill="#107c10" opacity="0.18"/><text x="155" y="92" text-anchor="middle" font-size="8" fill="white" font-weight="bold">S</text></g>
+          <g class="map-pin" data-name="Gateway-Hub-03" data-loc="4.598, -74.075" data-temp="31.2°C" data-status="Online"><circle cx="178" cy="108" r="7" fill="#0078d4" opacity="0.9"/><circle cx="178" cy="108" r="12" fill="#0078d4" opacity="0.18"/><text x="178" y="112" text-anchor="middle" font-size="8" fill="white" font-weight="bold">G</text></g>
+          <g class="map-pin" data-name="Camara-Ext-07" data-loc="4.745, -74.045" data-temp="45.8°C" data-status="Alerta"><circle cx="218" cy="70" r="7" fill="#ff8c00" opacity="0.9"/><circle cx="218" cy="70" r="12" fill="#ff8c00" opacity="0.18"/><text x="218" y="74" text-anchor="middle" font-size="8" fill="white" font-weight="bold">C</text></g>
+          <g class="map-pin" data-name="GPS-Tracker-09" data-loc="4.650, -74.100" data-temp="38.3°C" data-status="Alerta"><circle cx="128" cy="100" r="7" fill="#ff8c00" opacity="0.9"/><circle cx="128" cy="100" r="12" fill="#ff8c00" opacity="0.18"/><text x="128" y="104" text-anchor="middle" font-size="8" fill="white" font-weight="bold">T</text></g>
+          <g class="map-pin" data-name="Sensor-Hum-04" data-loc="4.680, -74.030" data-temp="--" data-status="Offline"><circle cx="248" cy="82" r="7" fill="#d13438" opacity="0.9"/><circle cx="248" cy="82" r="12" fill="#d13438" opacity="0.18"/><text x="248" y="86" text-anchor="middle" font-size="8" fill="white" font-weight="bold">H</text></g>
+          <g class="map-pin" data-name="Actuador-B-12" data-loc="4.720, -74.060" data-temp="28.1°C" data-status="Online"><circle cx="198" cy="76" r="7" fill="#107c10" opacity="0.9"/><circle cx="198" cy="76" r="12" fill="#107c10" opacity="0.18"/><text x="198" y="80" text-anchor="middle" font-size="8" fill="white" font-weight="bold">A</text></g>
+          <text x="8" y="195" font-size="8" fill="#8a8886">Bogotá, Colombia</text>
+        </svg>
+        <div class="map-tooltip" id="mapTooltip"></div>
+      </div>
+      <div class="legend-row" style="margin-top:7px;margin-bottom:0;">
+        <div class="legend-item"><div style="width:8px;height:8px;border-radius:50%;background:#107c10;"></div>En línea</div>
+        <div class="legend-item"><div style="width:8px;height:8px;border-radius:50%;background:#ff8c00;"></div>Alerta</div>
+        <div class="legend-item"><div style="width:8px;height:8px;border-radius:50%;background:#d13438;"></div>Offline</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-big-title">Sesiones de la aplicación</div>
+      <div class="session-stats">
+        <div class="sess-card"><div class="sess-n" style="color:#107c10">1,247</div><div class="sess-l">Inicios exitosos</div></div>
+        <div class="sess-card"><div class="sess-n" style="color:#d13438">38</div><div class="sess-l">Intentos fallidos</div></div>
+        <div class="sess-card"><div class="sess-n">94</div><div class="sess-l">Usuarios activos</div></div>
+        <div class="sess-card"><div class="sess-n" style="color:#ff8c00">3</div><div class="sess-l">IPs bloqueadas</div></div>
+      </div>
+      <div class="card-title" style="margin-bottom:5px;">Últimos intentos fallidos</div>
+      <div class="scrollable">
+        <table class="log-table">
+          <thead><tr><th>Hora</th><th>Usuario</th><th>IP</th><th>Motivo</th></tr></thead>
+          <tbody id="failedLog"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-big-title">Registro de consultas API</div>
+      <div style="position:relative;height:90px;margin-bottom:8px;"><canvas id="queryChart"></canvas></div>
+      <div class="card-title" style="margin-bottom:5px;">Últimas consultas</div>
+      <div class="scrollable">
+        <table class="log-table">
+          <thead><tr><th>Hora</th><th>Endpoint</th><th>Disp.</th><th>ms</th><th></th></tr></thead>
+          <tbody id="queryLog"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider">Comparativa de rendimiento y uso</div>
+  <div class="grid-half">
+    <div class="card">
+      <div class="card-big-title">Rendimiento por dispositivo — Uptime vs. Eficiencia</div>
+      <div class="legend-row">
+        <div class="legend-item"><div class="legend-sq" style="background:#0078d4"></div>Uptime %</div>
+        <div class="legend-item"><div class="legend-sq" style="background:#107c10"></div>Eficiencia %</div>
+      </div>
+      <div style="position:relative;height:180px;"><canvas id="perfChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-big-title">Uso de dispositivos — últimas 24 horas</div>
+      <div style="position:relative;height:180px;"><canvas id="usageChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-divider">Métricas de sensores en tiempo real</div>
+  <div class="grid-32">
+    <div class="card">
+      <div class="card-big-title">Sparklines — sensores activos</div>
+      <div id="sparklines"></div>
+    </div>
+    <div class="card">
+      <div class="card-big-title">Temperatura máxima del día</div>
+      <div style="position:relative;height:130px;"><canvas id="gaugeChart"></canvas></div>
+      <div class="gauge-center">
+        <div class="gauge-val" style="color:#d13438;">45.8°C</div>
+        <div class="gauge-sub">Camara-Ext-07 · Temperatura crítica</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const hours24=Array.from({length:24},(_,i)=>String(i).padStart(2,'0')+':00');
+function rnd(a,b,d=1){return +(Math.random()*(b-a)+a).toFixed(d);}
+
+// Temperatura
+new Chart(document.getElementById('tempChart'),{
+  type:'line',
+  data:{labels:['00','02','04','06','08','10','12','14','16','18','20','22'],datasets:[
+    {label:'Camara-Ext-07',data:[38,39,40,41,43,44,43,45,46,45,44,45.8],borderColor:'#d13438',backgroundColor:'rgba(209,52,56,0.07)',tension:0.4,fill:true,pointRadius:2,borderWidth:2},
+    {label:'Gateway-Hub-03',data:[28,29,30,30,31,31,32,31,31,30,31,31.2],borderColor:'#0078d4',backgroundColor:'rgba(0,120,212,0.04)',tension:0.4,fill:false,pointRadius:2,borderWidth:2},
+    {label:'Sensor-Alpha-01',data:[22,22,23,23,23,24,24,23,23,23,23,23.4],borderColor:'#107c10',fill:false,pointRadius:2,borderWidth:2,tension:0.4},
+    {label:'GPS-Tracker-09',data:[30,31,32,33,34,35,36,36,37,38,38,38.3],borderColor:'#ff8c00',fill:false,pointRadius:2,borderWidth:2,tension:0.4}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:6}}},scales:{y:{ticks:{font:{size:9},color:'#605e5c',callback:v=>v+'°C'},grid:{color:'rgba(0,0,0,0.05)'}},x:{ticks:{font:{size:9},color:'#605e5c'},grid:{display:false}}},animation:{duration:0}}
+});
+
+// Estado
+new Chart(document.getElementById('stateChart'),{
+  type:'doughnut',
+  data:{labels:['En línea (41)','Alerta (5)','Offline (2)'],datasets:[{data:[41,5,2],backgroundColor:['#107c10','#ff8c00','#d13438'],borderWidth:2,borderColor:'#fff'}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:6}}}}
+});
+
+// Queries
+const qVals=Array.from({length:12},()=>rnd(150,380,0));
+new Chart(document.getElementById('queryChart'),{
+  type:'bar',
+  data:{labels:['00','02','04','06','08','10','12','14','16','18','20','22'],datasets:[{data:qVals,backgroundColor:'rgba(0,120,212,0.65)',borderRadius:3}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:9},color:'#605e5c'},grid:{color:'rgba(0,0,0,0.05)'}},x:{ticks:{font:{size:9},color:'#605e5c'},grid:{display:false}}}}
+});
+
+// Rendimiento
+new Chart(document.getElementById('perfChart'),{
+  type:'bar',
+  data:{
+    labels:['Sensor-A','Gateway','Camara','Actuador','Control','GPS','Hum-Sen'],
+    datasets:[
+      {label:'Uptime %',data:[99.2,98.7,87.3,97.8,99.5,92.1,0],backgroundColor:'#0078d4',borderRadius:3,barThickness:9},
+      {label:'Eficiencia %',data:[94,96,71,89,98,85,0],backgroundColor:'#107c10',borderRadius:3,barThickness:9}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{font:{size:9},color:'#605e5c',callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},x:{ticks:{font:{size:9},color:'#605e5c'},grid:{display:false}}}}
+});
+
+// Uso 24h
+new Chart(document.getElementById('usageChart'),{
+  type:'line',
+  data:{labels:hours24,datasets:[{data:Array.from({length:24},()=>rnd(20,100,0)),borderColor:'#8764b8',backgroundColor:'rgba(135,100,184,0.1)',tension:0.4,fill:true,pointRadius:1.5,borderWidth:2}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:9},color:'#605e5c',callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},x:{ticks:{font:{size:9},color:'#605e5c',maxTicksLimit:8},grid:{display:false}}}}
+});
+
+// Gauge
+new Chart(document.getElementById('gaugeChart'),{
+  type:'doughnut',
+  data:{labels:['Temp','Rest'],datasets:[{data:[57.25,42.75],backgroundColor:['#d13438','#edebe9'],borderWidth:0,circumference:180,rotation:270}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'70%',plugins:{legend:{display:false},tooltip:{enabled:false}}}
+});
+
+// Energía
+const energyDevices=[
+  {name:'Gateway-Hub',cur:0.82,prev:0.71},{name:'Camara-Ext',cur:0.74,prev:0.68},
+  {name:'Controlador',cur:0.61,prev:0.65},{name:'Actuador-B',cur:0.55,prev:0.50},
+  {name:'Sensor-Alpha',cur:0.48,prev:0.45},{name:'GPS-Tracker',cur:0.37,prev:0.42},
+  {name:'Sensor-Hum',cur:0.23,prev:0.51}
+];
+document.getElementById('energyBars').innerHTML=energyDevices.map(d=>`
+  <div class="mini-bar-row">
+    <div class="mini-bar-label">${d.name}</div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:2px;">
+      <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${(d.cur*100).toFixed(0)}%;background:#0078d4;"></div></div>
+      <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${(d.prev*100).toFixed(0)}%;background:#b0c9e8;"></div></div>
+    </div>
+    <div class="mini-bar-val">${d.cur} kWh</div>
+  </div>`).join('');
+
+// Sparklines
+const sensors=[
+  {name:'Temperatura',unit:'°C',vals:[22,23,23,24,23,23.4],color:'#d13438'},
+  {name:'Humedad',unit:'%',vals:[65,64,63,64,65,64.2],color:'#0078d4'},
+  {name:'Presión',unit:'hPa',vals:[1012,1013,1012,1011,1012,1012.5],color:'#8764b8'},
+  {name:'CO2',unit:'ppm',vals:[412,415,414,416,413,413.8],color:'#107c10'},
+  {name:'Luz',unit:'lux',vals:[820,850,870,860,840,855],color:'#ff8c00'},
+  {name:'Vibración',unit:'mm/s',vals:[0.2,0.3,0.2,0.3,0.2,0.25],color:'#d13438'},
+];
+function makeSpark(vals,color){
+  const w=120,h=26,p=3,mn=Math.min(...vals),mx=Math.max(...vals),range=mx-mn||1;
+  const pts=vals.map((v,i)=>`${(p+i/(vals.length-1)*(w-p*2)).toFixed(1)},${(h-p-(v-mn)/range*(h-p*2)).toFixed(1)}`).join(' ');
+  const lx=(p+(vals.length-1)/(vals.length-1)*(w-p*2)).toFixed(1);
+  const ly=(h-p-(vals[vals.length-1]-mn)/range*(h-p*2)).toFixed(1);
+  return `<svg viewBox="0 0 ${w} ${h}" class="spark-svg" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/><circle cx="${lx}" cy="${ly}" r="3" fill="${color}"/></svg>`;
+}
+document.getElementById('sparklines').innerHTML=sensors.map(s=>`
+  <div class="spark-item">
+    <div class="spark-name">${s.name}</div>
+    ${makeSpark(s.vals,s.color)}
+    <div class="spark-val">${s.vals[s.vals.length-1]} ${s.unit}</div>
+  </div>`).join('');
+
+// Logs fallidos
+const failedReasons=['Contraseña incorrecta','Usuario no encontrado','Cuenta bloqueada','Token expirado'];
+const failedUsers=['admin_test','root','user123','j.garcia','unknown','test_api'];
+const failedIPs=['192.168.1.45','10.0.0.133','203.0.113.22','198.51.100.8','172.16.0.55'];
+let fHTML='';
+for(let i=0;i<8;i++){
+  const h=String(Math.floor(Math.random()*24)).padStart(2,'0');
+  const m=String(Math.floor(Math.random()*60)).padStart(2,'0');
+  fHTML+=`<tr><td>${h}:${m}</td><td style="color:#a4262c">${failedUsers[i%failedUsers.length]}</td><td>${failedIPs[i%failedIPs.length]}</td><td><span class="tag tag-fail">${failedReasons[i%failedReasons.length].split(' ')[0]}</span></td></tr>`;
+}
+document.getElementById('failedLog').innerHTML=fHTML;
+
+// Log consultas
+const eps=['/sensor/data','/device/status','/gps/location','/energy/read','/auth/token'];
+const devs=['Sensor-A','Gateway','Camara','Actuador','Control','GPS'];
+let qHTML='';
+for(let i=0;i<8;i++){
+  const h=String(Math.floor(Math.random()*24)).padStart(2,'0');
+  const m=String(Math.floor(Math.random()*60)).padStart(2,'0');
+  const ms=rnd(12,380,0);
+  qHTML+=`<tr><td>${h}:${m}</td><td style="color:#0078d4;font-size:9px;">${eps[i%eps.length]}</td><td>${devs[i%devs.length]}</td><td>${ms}</td><td><span class="tag ${ms>200?'tag-warn':'tag-ok'}">${ms>200?'Lento':'OK'}</span></td></tr>`;
+}
+document.getElementById('queryLog').innerHTML=qHTML;
+
+// Tooltip mapa
+const tooltip=document.getElementById('mapTooltip');
+document.querySelectorAll('.map-pin').forEach(pin=>{
+  pin.addEventListener('mouseenter',()=>{
+    const c=pin.dataset.status==='Online'?'#107c10':pin.dataset.status==='Alerta'?'#ff8c00':'#d13438';
+    tooltip.innerHTML=`<strong>${pin.dataset.name}</strong><br>GPS: ${pin.dataset.loc}<br>Temp: ${pin.dataset.temp}<br><span style="color:${c}">${pin.dataset.status}</span>`;
+    tooltip.style.display='block';
+  });
+  pin.addEventListener('mouseleave',()=>{tooltip.style.display='none';});
+});
+
+// Timestamp
+function updateTs(){
+  document.getElementById('timestamp').textContent=new Date().toLocaleString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,day:'2-digit',month:'2-digit',year:'numeric'});
+}
+updateTs(); setInterval(updateTs,1000);
+
+// KPIs en vivo
+let qpm=247, energy=3.8;
+setInterval(()=>{qpm=Math.max(180,Math.min(380,qpm+rnd(-15,15,0)));document.getElementById('kpi-qpm').textContent=Math.round(qpm);},3000);
+setInterval(()=>{energy=+(energy+rnd(0,0.05,2)).toFixed(2);document.getElementById('kpi-energy').textContent=energy.toFixed(1);},5000);
+</script>
+</body>
+</html>
